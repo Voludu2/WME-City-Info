@@ -2,7 +2,7 @@
 // @name         WME Cityinfo display
 // @namespace
 // @version      2019.4.9.01
-// @description  Display city info for selected cities, a button for city info for selected objects with an address field
+// @description  Display city info for selected cities, a button to display city info for selected objects with an address field
 // @author       justin83, voludu2
 // @include      https://beta.waze.com/*
 // @include      https://www.waze.com/editor*
@@ -11,8 +11,10 @@
 // @require      https://greasyfork.org/scripts/24851-wazewrap/code/WazeWrap.js
 // @grant        none
 // ==/UserScript==
+// Extends the functionality of englishName to display city attributes (name, ID, stateID, englishNAme)
+//      Select city object (city name balloon) to display city info in left pane
+// or   Select any object with an address (JB, place, segment), then use the building icon above adress-edit to display the city info
 
-var $scrP = 'cityInfo';
 (function() {
     'use strict';
 
@@ -27,14 +29,14 @@ var $scrP = 'cityInfo';
 
     function init()
     {
-        W.selectionManager.events.register("selectionchanged", null, displayIfCity);
+         W.selectionManager.events.register("selectionchanged", null, displayIfCity);
     }
 
     function cityInfoHTML(City)
     {
         var $cityAttributes = $(`<div id="ciCityInfoContainer" class="map-comment-name-editor">
 <div class='preview'><i class="fa fa-copy" id="ciCopyCityInfoButton" title="Copy city info to clipboard" onclick="$('#ciCityInfoText').select();document.execCommand('copy');"></i>
-<input id="ciCityInfoText" value="${City.name};${City.id};${City.stateID};${City.englishName};${$('.WazeControlPermalink > .permalink')[0].href}" readonly /></div>
+    <input id="ciCityInfoText" value="${City.name};${City.id};${City.stateID};${City.englishName};${$('.WazeControlPermalink > .permalink')[0].href}" readonly /></div>
 <div>&nbsp;</div>
 <div class='preview'>city: <span>${City.name}</span></div>
 <div class='preview'>cityID: <span>${City.id}</span></div>
@@ -49,28 +51,30 @@ var $scrP = 'cityInfo';
         // Cribbed from PIE - if .address-edit exists, then display a city icon for displaying the city information.
         $('#ciCityButton').remove();
         if(WazeWrap.getSelectedFeatures().length > 0){
-            var $city = $('<i class="fa fa-building" id="ciCityButton" title="shows city information" aria-hidden="true" style="display:inline; margin:5px;"></i>');
-            $('.address-edit-view').parent().parent().find('.control-label').attr("style", "display:inline");
-            $('.address-edit').before($city);
+               var $city = $('<i class="fa fa-building" id="ciCityButton" title="shows city information" aria-hidden="true" style="display:inline; margin:5px;"></i>');
+                $('.address-edit-view').parent().parent().find('.control-label').attr("style", "display:inline");
+                $('.address-edit').before($city);
 
-            $('#ciCityButton').click(function(){
-                $('#ciCityInfoContainer').remove();
-                $('.address-edit').before(cityInfoHTML(WazeWrap.getSelectedFeatures()[0].model.getAddress().attributes.city.attributes));
-            });
+                $('#ciCityButton').click(function(){
+                    $('#ciCityInfoContainer').remove();
+                    $('.address-edit').before(cityInfoHTML(WazeWrap.getSelectedFeatures()[0].model.getAddress().attributes.city.attributes));
+                });
         }
     }
     function displayIfCity()
     {
+        console.log("cityInfo: hasSelectedFeatures? " + WazeWrap.hasSelectedFeatures());
         if(WazeWrap.hasSelectedFeatures())
         {
-            // City selected - show the information
+             // City selected - show the information
             if(WazeWrap.getSelectedFeatures()[0].model.type == "city")
             {
                 $('#edit-panel > div > div > div > div > div.preview').after(cityInfoHTML(WazeWrap.getSelectedFeatures()[0].model.attributes));
             }
-            // Something else selected - show a button instead
-            else
+           // Something else selected with an address - show a button instead
+            else if (typeof(WazeWrap.getSelectedFeatures()[0].model.getAddress) == 'function')
             {
+                console.log("cityInfo city " + WazeWrap.getSelectedFeatures()[0].model.getAddress().attributes.city.attributes.length > 0);
                 showCityButton();
 
             }
